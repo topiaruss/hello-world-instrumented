@@ -87,7 +87,7 @@ node {
       sh("kubectl --namespace=${namespace} label pod  -l env=canary --all --overwrite version=${prevBuildNum}")
 
     }
-    error('Aborted')
+    error('Aborted!')
   }
 
   if (!firstDeploy) {
