@@ -1,9 +1,9 @@
 #!groovy
-  
+
 def project = 'russf'
 def appName = 'hello-world-instrumented'
 def feSvcName = "${appName}"
-def namespace = 'monitoring-demo'
+def namespace = 'default'
 def imageTag = "quay.io/${project}/${appName}:v${env.BUILD_NUMBER}"
 def prevImageTag = ''
 def prevBuildNum = ''
@@ -26,10 +26,10 @@ node {
 
   checkout scm
   sh("printenv")
-	
+
   stage 'Login to Quay.io'
   sh("docker login -u=\"${env.quay_username}\" -p=\"${env.quay_password}\" quay.io")
-	
+
   stage 'Build image'
   sh("docker build -t ${imageTag} .")
 
@@ -50,15 +50,15 @@ node {
     sh("kubectl --namespace=${namespace} apply -f k8s/production/")
     sh("kubectl --namespace=${namespace} label deployment hello-world-production --overwrite version=v${BUILD_NUMBER}")
     sh("kubectl --namespace=${namespace} label pod  -l env=production --all --overwrite version=v${BUILD_NUMBER}")
-    currentBuild.result = 'SUCCESS'   
+    currentBuild.result = 'SUCCESS'
     return
   } else {
     // Roll out to canary environment
     stage "Deploy Canary"
-    
+
     // Change deployed image in canary to the one we just built
     sh("kubectl --namespace=${namespace} set image deployment/hello-world-canary hello-world=${imageTag}")
-    
+
     // Apply version label to deployment
     sh("kubectl --namespace=${namespace} label deployment hello-world-canary --overwrite version=v${BUILD_NUMBER}")
     sh("kubectl --namespace=${namespace} label pod  -l env=canary --all --overwrite version=v${BUILD_NUMBER}")
@@ -69,7 +69,7 @@ node {
   try {
     timeout(time:1, unit:'DAYS') {
       userInput = input(id: 'promoteToProd', message: 'Approve rollout to production?')
-      echo "userInput: [${userInput}]" 
+      echo "userInput: [${userInput}]"
     }
   } catch(err) { // timeout reached or input false
     stage 'Rolling Back Canary'
@@ -82,7 +82,7 @@ node {
       echo "Rolling back to: ${prevImageTag}"
 
       // Change deployed image in canary to the previous image
-    	sh("kubectl --namespace=${namespace} set image deployment/hello-world-canary hello-world=${prevImageTag}")	
+    	sh("kubectl --namespace=${namespace} set image deployment/hello-world-canary hello-world=${prevImageTag}")
     	sh("kubectl --namespace=${namespace} label deployment hello-world-canary --overwrite version=${prevBuildNum}")
       sh("kubectl --namespace=${namespace} label pod  -l env=canary --all --overwrite version=${prevBuildNum}")
 
@@ -91,7 +91,7 @@ node {
   }
 
   if (!firstDeploy) {
-  stage 'Rollout to Production' 
+  stage 'Rollout to Production'
     // Roll out to production environment
     // Change deployed image in canary to the one we just built
     //sh("sed -i.bak 's#quay.io/${project}/${appName}:.*\$#${imageTag}#' ./k8s/production/*.yaml")
