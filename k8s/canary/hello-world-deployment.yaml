@@ -13,8 +13,8 @@ spec:
         env: canary
     spec:
       containers:
-      - name: hello-world 
-        image: quay.io/chris_ricci/hello-world-instrumented:v1
+      - name: hello-world
+        image: quay.io/russf/hello-world-instrumented:v1
         imagePullPolicy: Always
         ports:
         - name: web
